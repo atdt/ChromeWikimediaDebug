@@ -1,33 +1,64 @@
-window.addEventListener( 'load', function () {
-  'use strict';
+'use strict';
 
-  var $options = [].slice.call( document.querySelectorAll( '.option' ) );
+function onConfig( config ) {
+  var $backend = document.querySelector( '#backend' );
 
-  function onUpdate() {
-      var state = { action: 'set' };
-
-      $options.forEach( function ( $el ) {
-          state[ $el.id ] = $el.checked !== undefined
-            ? $el.checked
-            : $el.value;
-      } );
-
-      chrome.runtime.sendMessage( state );
+  while ( $backend.firstChild ) {
+      $backend.removeChild( $backend.firstChild );
   }
 
-  chrome.runtime.sendMessage( { action: 'get' }, function ( response ) {
-      $options.forEach( function ( $el ) {
-          var value = response[ $el.id ];
+  config.backends.forEach( function ( backend ) {
+      var $option = document.createElement( 'option' );
 
-          if ( typeof value === 'boolean' ) {
-              $el.checked = value;
-          } else {
-              $el.value = value;
-          }
-
-          $el.addEventListener( 'change', onUpdate, false );
-      } );
-
-      document.body.className = '';
+      $option.value = backend;
+      $option.innerText = backend;
+      $backend.appendChild( $option );
   } );
+
+  $backend.selectedIndex = 0;
+}
+
+function onStorageData( data ) {
+  if ( data.config ) {
+    onConfig( data.config );
+  }
+}
+
+function onUpdate() {
+    var state = { action: 'set' },
+      $options = Array.from( document.querySelectorAll( '.option' ) );
+
+    $options.forEach( function ( $el ) {
+        state[ $el.id ] = $el.checked !== undefined
+          ? $el.checked
+          : $el.value;
+    } );
+
+    chrome.runtime.sendMessage( state );
+}
+
+function refreshState( state ) {
+    var $options = Array.from( document.querySelectorAll( '.option' ) );
+
+    $options.forEach( function ( $el ) {
+        var value = state[ $el.id ];
+
+        if ( typeof value === 'boolean' ) {
+            $el.checked = value;
+        } else if ( value !== null ) {
+            $el.value = value;
+        }
+
+        $el.addEventListener( 'change', onUpdate, false );
+    } );
+
+    document.body.className = '';
+}
+
+window.addEventListener( 'load', function () {
+  chrome.runtime.sendMessage( { action: 'get' }, refreshState );
 } );
+
+chrome.storage.local.get( 'config', onStorageData );
+
+chrome.storage.onChanged.addListener( onStorageData );

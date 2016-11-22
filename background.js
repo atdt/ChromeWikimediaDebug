@@ -57,7 +57,7 @@ var debug = {
     enabled: false,
 
     // To which backend shall the request go to?
-    backend: 'mw1017.eqiad.wmnet',
+    backend: null,
 
     // Should debug requests be profiled?
     profile: false,
@@ -117,6 +117,12 @@ var debug = {
         }
     }
 };
+
+fetch( 'https://noc.wikimedia.org/conf/debug.json' ).then( function ( resp ) {
+    return resp.json();
+} ).then( function ( config ) {
+    chrome.storage.local.set( { config: config } );
+} );
 
 chrome.runtime.onMessage.addListener( debug.onMessage );
 
